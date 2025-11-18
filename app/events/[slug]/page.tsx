@@ -55,7 +55,7 @@ const EventsDetailsPage = async ({ params }: { params: Promise<{ slug: string }>
   if (!description) return notFound();
   const bookings = 10;
   const similarEvents: IEvent[] = await getSimilarEventsBySlug(slug);
-  console.log(similarEvents);
+
   return (
     <section id="event">
       <div className="header">
