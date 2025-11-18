@@ -2,7 +2,9 @@ import BookEvent from "@/components/BookEvent";
 import EventCard from "@/components/EventCard";
 import { BASE_URL } from "@/conf/env";
 import { IEvent } from "@/database/event.model";
+import { getBookingsByEventId } from "@/lib/actions/booking.actions";
 import { getSimilarEventsBySlug } from "@/lib/actions/event.actions";
+import { cacheLife, cacheTag } from "next/cache";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
@@ -34,12 +36,16 @@ const EventTagItem = ({ tags }: { tags: string[] }) => (
   </div>
 );
 const EventsDetailsPage = async ({ params }: { params: Promise<{ slug: string }> }) => {
+  "use cache";
+  cacheLife("hours");
   const { slug } = await params;
+
   const request = await fetch(BASE_URL + `/api/events/${slug}`);
   const { data } = await request.json();
+
   const {
+    _id,
     description,
-    title,
     image,
     overview,
     audience,
@@ -51,10 +57,15 @@ const EventsDetailsPage = async ({ params }: { params: Promise<{ slug: string }>
     organizer,
     tags,
   } = data as IEvent;
+  // cache the event page and bookings count
+  const eventId = String(data._id || data.id) || "";
+
+  cacheTag(`event-page-${slug}`);
+  cacheTag(`bookings-count-${eventId}`);
 
   if (!description) return notFound();
-  const bookings = 10;
-  const similarEvents: IEvent[] = await getSimilarEventsBySlug(slug);
+  const similarEvents = await getSimilarEventsBySlug(slug);
+  const bookingsCount = await getBookingsByEventId(String(data._id || data.id) || "");
 
   return (
     <section id="event">
@@ -96,12 +107,14 @@ const EventsDetailsPage = async ({ params }: { params: Promise<{ slug: string }>
           <div className="signup-card">
             <h2>Book Your Spot</h2>
             {/* BookEvent */}
-            {bookings > 0 ? (
-              <p className="text-sm">Join {bookings} people Who have already booked their spot</p>
+            {bookingsCount > 0 ? (
+              <p className="text-sm">
+                Join {bookingsCount} people Who have already booked their spot
+              </p>
             ) : (
               <p className="text-sm">Be The First to Book Your Spot</p>
             )}
-            <BookEvent />
+            <BookEvent eventId={String(data._id || data.id)} slug={slug} />{" "}
           </div>
         </aside>
       </div>
