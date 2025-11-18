@@ -3,6 +3,22 @@ import connectDB from "@/lib/mongodb";
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 
+// Helper function to parse array fields (handles both JSON strings and comma-separated strings)
+function parseArrayField(field: string): string[] {
+  if (!field) return [];
+  try {
+    // Try parsing as JSON first
+    const parsed = JSON.parse(field);
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } catch {
+    // If JSON parse fails, treat as comma-separated string
+    return field
+      .split(",")
+      .map((item) => item.trim())
+      .filter((item) => item.length > 0);
+  }
+}
+
 export async function POST(request: Request) {
   try {
     // 1.0 connect to the Database
@@ -34,6 +50,9 @@ export async function POST(request: Request) {
       );
     }
 
+    const tags = parseArrayField(eventData.tags as string);
+    const agenda = parseArrayField(eventData.agenda as string);
+
     const bufferArray = await file.arrayBuffer();
     const buffer = Buffer.from(bufferArray);
 
@@ -57,7 +76,7 @@ export async function POST(request: Request) {
 
     eventData.image = (uploadResult as { secure_url: string }).secure_url;
 
-    const createdEvents = await Event.create(eventData);
+    const createdEvents = await Event.create({ ...eventData, tags, agenda });
     if (!createdEvents) {
       return NextResponse.json(
         {

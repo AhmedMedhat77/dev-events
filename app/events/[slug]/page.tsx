@@ -1,6 +1,8 @@
 import BookEvent from "@/components/BookEvent";
+import EventCard from "@/components/EventCard";
 import { BASE_URL } from "@/conf/env";
 import { IEvent } from "@/database/event.model";
+import { getSimilarEventsBySlug } from "@/lib/actions/event.actions";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 
@@ -52,6 +54,8 @@ const EventsDetailsPage = async ({ params }: { params: Promise<{ slug: string }>
 
   if (!description) return notFound();
   const bookings = 10;
+  const similarEvents: IEvent[] = await getSimilarEventsBySlug(slug);
+  console.log(similarEvents);
   return (
     <section id="event">
       <div className="header">
@@ -100,6 +104,26 @@ const EventsDetailsPage = async ({ params }: { params: Promise<{ slug: string }>
             <BookEvent />
           </div>
         </aside>
+      </div>
+      <div className="flex w-full flex-col gap-4 pt-20">
+        <h2>Similar Events</h2>
+        <div className="events">
+          {similarEvents?.length > 0 ? (
+            similarEvents.map((event) => (
+              <EventCard
+                key={String(event._id)}
+                slug={event.slug}
+                image={event.image}
+                title={event.title}
+                location={event.location}
+                date={event.date}
+                time={event.time}
+              />
+            ))
+          ) : (
+            <p className="text-center">No similar events found</p>
+          )}
+        </div>
       </div>
     </section>
   );
